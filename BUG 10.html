@@ -1,0 +1,2218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZYT-DSA</title>
+    <link href="https://fonts.cdnfonts.com/css/six-caps" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        @import url('https://fonts.cdnfonts.com/css/six-caps');
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.95; }
+            25% { opacity: 0.98; }
+            75% { opacity: 0.93; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.15; }
+            50% { opacity: 0.4; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(80,40,40,0.08); }
+            50% { box-shadow: 0 0 30px rgba(80,40,40,0.15); }
+        }
+
+        @keyframes bulletPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.9); }
+        }
+
+        body {
+            min-height: 100vh;
+            height: 100vh;
+            background: #0d0d0d;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(35, 10, 10, 0.2) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(15, 5, 25, 0.2) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 100%, rgba(25, 5, 5, 0.1) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(1.5px 1.5px at 20px 30px, #2a2a2a, transparent),
+                radial-gradient(1.5px 1.5px at 40px 70px, #222, transparent),
+                radial-gradient(1px 1px at 90px 40px, #333, transparent),
+                radial-gradient(1px 1px at 130px 80px, #2a2a2a, transparent),
+                radial-gradient(1.5px 1.5px at 160px 30px, #222, transparent);
+            background-size: 200px 100px;
+            opacity: 0.06;
+            pointer-events: none;
+            z-index: 0;
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            max-width: 480px;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        /* ===== SPLASH VIDEO ===== */
+        .splash-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .splash-screen.show {
+            display: flex;
+        }
+
+        .splash-screen video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+        }
+
+        .splash-skip {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 101;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .splash-skip:active {
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* ===== LOADING OVERLAY ===== */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .loading-overlay.hide {
+            animation: fadeOut 0.3s ease;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #b08888;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loading-text {
+            color: #b09898;
+            font-size: 1.1rem;
+            font-weight: 500;
+            letter-spacing: 2px;
+        }
+
+        .loading-done {
+            display: none;
+            color: #55aa77;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .loading-done.show {
+            display: block;
+        }
+
+        .loading-spinner.hide {
+            display: none;
+        }
+
+        /* ===== HALAMAN LOGIN ===== */
+        .page-login {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            padding: 30px 24px;
+            animation: slideIn 0.5s ease;
+            background: rgba(10, 10, 10, 0.95);
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        .page-login.hidden {
+            display: none;
+        }
+
+        .login-box {
+            background: rgba(18, 18, 18, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(55, 45, 45, 0.2);
+            border-radius: 28px;
+            padding: 36px 28px 32px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 
+                0 8px 40px rgba(0,0,0,0.9),
+                0 0 40px rgba(30, 0, 0, 0.05),
+                inset 0 0 30px rgba(0,0,0,0.5);
+            animation: flicker 5s ease-in-out infinite;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .login-box::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 28px;
+            background: linear-gradient(180deg, rgba(70, 35, 35, 0.05) 0%, transparent 50%, rgba(25, 5, 35, 0.05) 100%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .login-brand {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .login-brand .logo-icon {
+            font-size: 2.6rem;
+            display: block;
+            margin-bottom: 2px;
+            letter-spacing: 0;
+            opacity: 0.8;
+        }
+
+        .login-brand h1 {
+            font-family: 'Six Caps', sans-serif;
+            font-size: 3.8rem;
+            font-weight: 400;
+            letter-spacing: 10px;
+            color: #e8ddd5;
+            text-shadow: 
+                0 0 20px rgba(50, 20, 20, 0.15),
+                0 0 40px rgba(30, 0, 0, 0.08);
+        }
+
+        .login-brand h1 span {
+            font-family: 'Six Caps', sans-serif;
+            color: #b08888;
+        }
+
+        .login-input-group {
+            background: rgba(20, 20, 20, 0.7);
+            border-radius: 50px;
+            border: 1px solid rgba(50, 35, 35, 0.2);
+            display: flex;
+            align-items: center;
+            padding: 2px 2px 2px 20px;
+            margin-bottom: 12px;
+            transition: 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .login-input-group:focus-within {
+            border-color: rgba(90, 55, 55, 0.3);
+            box-shadow: 0 0 20px rgba(30, 0, 0, 0.05);
+        }
+
+        .login-input-group .login-icon {
+            color: #554444;
+            font-size: 0.9rem;
+            margin-right: 8px;
+        }
+
+        .login-input-group input {
+            background: transparent;
+            border: none;
+            padding: 15px 0;
+            font-size: 0.92rem;
+            color: #d4c8c8;
+            width: 100%;
+            outline: none;
+            font-weight: 400;
+        }
+
+        .login-input-group input::placeholder {
+            color: #554444;
+            font-weight: 300;
+        }
+
+        .login-btn {
+            width: 100%;
+            background: rgba(55, 35, 35, 0.25);
+            border: 1px solid rgba(55, 45, 45, 0.12);
+            border-radius: 50px;
+            padding: 16px 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #b09898;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            -webkit-tap-highlight-color: transparent;
+            margin-top: 6px;
+        }
+
+        .login-btn:active {
+            transform: scale(0.97);
+            background: rgba(65, 40, 40, 0.3);
+        }
+
+        .login-error {
+            color: #aa5555;
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 12px;
+            min-height: 20px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        .login-footer {
+            margin-top: 16px;
+            color: #1a1515;
+            font-size: 0.5rem;
+            text-align: center;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            opacity: 0.3;
+        }
+
+        /* ===== PAGE ===== */
+        .page {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            padding: 16px;
+            animation: slideIn 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .page.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card {
+            background: rgba(18, 18, 18, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(55, 45, 45, 0.15);
+            border-radius: 24px;
+            padding: 20px 20px 24px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 
+                0 8px 32px rgba(0,0,0,0.9),
+                0 0 30px rgba(30, 0, 0, 0.04),
+                inset 0 0 30px rgba(0,0,0,0.5);
+            position: relative;
+            animation: flicker 5s ease-in-out infinite;
+            overflow-y: auto;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 24px;
+            background: linear-gradient(180deg, rgba(70, 35, 35, 0.04) 0%, transparent 50%, rgba(25, 5, 35, 0.04) 100%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 0 4px;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-circle-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(30, 20, 20, 0.5);
+            border: 1px solid rgba(55, 45, 45, 0.15);
+            color: #998888;
+            font-size: 1.3rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            letter-spacing: -1px;
+            flex-shrink: 0;
+        }
+
+        .menu-circle-btn:active {
+            transform: scale(0.9);
+            background: rgba(55, 40, 40, 0.25);
+            border-color: rgba(80, 50, 50, 0.2);
+        }
+
+        .brand-title {
+            font-family: 'Six Caps', sans-serif;
+            font-size: 2.4rem;
+            font-weight: 400;
+            letter-spacing: 6px;
+            color: #e8ddd5;
+        }
+
+        .brand-title span {
+            font-family: 'Six Caps', sans-serif;
+            color: #b08888;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #4a6a4a;
+            display: inline-block;
+            animation: pulse 2s ease-in-out infinite;
+            box-shadow: 0 0 8px rgba(74, 106, 74, 0.15);
+        }
+
+        .status-label {
+            color: #665555;
+            font-size: 0.5rem;
+            letter-spacing: 0.3px;
+            text-align: right;
+            max-width: 80px;
+            line-height: 1.2;
+            font-weight: 400;
+        }
+
+        .status-label.permanen {
+            color: #558866;
+        }
+
+        .status-label.expired {
+            color: #aa5555;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(55, 45, 45, 0.12), rgba(70, 35, 35, 0.08), rgba(55, 45, 45, 0.12), transparent);
+            margin: 10px 0 16px 0;
+            flex-shrink: 0;
+        }
+
+        .video-container {
+            width: 100%;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            background: #000;
+            border: 1px solid rgba(40, 30, 30, 0.2);
+            position: relative;
+            box-shadow: 0 0 20px rgba(20, 0, 0, 0.08);
+            flex-shrink: 0;
+        }
+
+        .video-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, 
+                rgba(15, 0, 0, 0.08) 0%,
+                transparent 30%,
+                transparent 70%,
+                rgba(15, 0, 0, 0.12) 100%
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .video-container video {
+            width: 100%;
+            display: block;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            background: #0a0a0a;
+            filter: contrast(1.02) brightness(0.92) saturate(0.92);
+        }
+
+        .input-group {
+            background: rgba(20, 20, 20, 0.7);
+            border-radius: 50px;
+            border: 1px solid rgba(50, 35, 35, 0.15);
+            display: flex;
+            align-items: center;
+            padding: 2px 2px 2px 18px;
+            margin-bottom: 18px;
+            transition: 0.3s;
+            backdrop-filter: blur(5px);
+            flex-shrink: 0;
+        }
+
+        .input-group:focus-within {
+            border-color: rgba(80, 50, 50, 0.25);
+            box-shadow: 0 0 20px rgba(30, 0, 0, 0.04);
+        }
+
+        .input-group input {
+            background: transparent;
+            border: none;
+            padding: 13px 0;
+            font-size: 0.92rem;
+            color: #d4c8c8;
+            width: 100%;
+            outline: none;
+            font-weight: 400;
+        }
+
+        .input-group input::placeholder {
+            color: #554444;
+            font-weight: 300;
+        }
+
+        .input-group .input-icon {
+            color: #554444;
+            font-size: 0.85rem;
+            margin-right: 6px;
+        }
+
+        .bug-list {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            margin: 12px 0 16px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .bug-item {
+            background: rgba(16, 16, 16, 0.5);
+            border-radius: 16px;
+            padding: 11px 16px;
+            border: 1px solid rgba(40, 30, 30, 0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            color: #887777;
+            font-weight: 500;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            backdrop-filter: blur(5px);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .bug-item .bullet {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid rgba(55, 45, 45, 0.2);
+            flex-shrink: 0;
+            transition: all 0.4s ease;
+            position: relative;
+            background: transparent;
+        }
+
+        .bug-item .bullet::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: rgba(140, 80, 80, 0.4);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 12px rgba(140, 80, 80, 0.15);
+        }
+
+        .bug-item.active .bullet {
+            border-color: rgba(140, 80, 80, 0.5);
+            background: transparent;
+            animation: bulletPulse 1.5s ease-in-out infinite;
+        }
+
+        .bug-item.active .bullet::after {
+            transform: translate(-50%, -50%) scale(1);
+            background: #c4a0a0;
+            box-shadow: 0 0 15px rgba(160, 90, 90, 0.25);
+        }
+
+        .bug-item:active {
+            transform: scale(0.97);
+        }
+
+        .bug-item.active {
+            border-color: rgba(110, 70, 70, 0.3);
+            background: rgba(30, 22, 22, 0.85);
+            color: #e8ddd5;
+            box-shadow: 
+                0 0 20px rgba(50, 20, 20, 0.06),
+                inset 0 0 15px rgba(50, 20, 20, 0.02);
+            animation: glowPulse 2.5s ease-in-out infinite;
+        }
+
+        .bug-item.active .badge {
+            background: rgba(75, 50, 50, 0.3);
+            color: #bbaaaa;
+            border-color: rgba(110, 70, 70, 0.2);
+        }
+
+        .bug-item .label {
+            flex: 1;
+            transition: all 0.3s ease;
+        }
+
+        .bug-item .badge {
+            font-size: 0.45rem;
+            background: rgba(30, 20, 20, 0.3);
+            color: #665555;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+            border: 1px solid rgba(40, 30, 30, 0.08);
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .bug-item:hover:not(.active) {
+            border-color: rgba(55, 45, 45, 0.2);
+            background: rgba(22, 18, 18, 0.6);
+        }
+
+        .action-btn {
+            width: 100%;
+            background: rgba(55, 35, 35, 0.2);
+            border: 1px solid rgba(55, 45, 45, 0.1);
+            border-radius: 50px;
+            padding: 15px 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #c4a8a8;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+        }
+
+        .action-btn:active {
+            transform: scale(0.97);
+            background: rgba(65, 40, 40, 0.25);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.3;
+            transform: scale(0.98);
+        }
+
+        .status {
+            margin-top: 14px;
+            background: rgba(16, 16, 16, 0.5);
+            border-radius: 20px;
+            padding: 9px 16px;
+            color: #665555;
+            font-size: 0.68rem;
+            text-align: center;
+            border: 1px solid rgba(30, 25, 25, 0.08);
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.5;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .footer {
+            margin-top: 12px;
+            color: #1a1515;
+            font-size: 0.5rem;
+            text-align: center;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            opacity: 0.3;
+            flex-shrink: 0;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: #998888;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .back-btn:active {
+            transform: scale(0.9);
+            background: rgba(55,40,40,0.12);
+        }
+
+        .back-btn span {
+            font-size: 0.7rem;
+            letter-spacing: 0.5px;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #665555;
+            font-size: 0.6rem;
+            cursor: pointer;
+            padding: 4px 10px;
+            transition: 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            border-radius: 12px;
+            border: 1px solid rgba(55,45,45,0.08);
+            letter-spacing: 0.5px;
+        }
+
+        .logout-btn:active {
+            transform: scale(0.9);
+            background: rgba(55,40,40,0.12);
+            border-color: rgba(70,50,50,0.15);
+        }
+
+        /* ===== HALAMAN AKUN ===== */
+        .account-section {
+            margin-bottom: 12px;
+        }
+
+        .account-section-title {
+            color: #887777;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(55,45,45,0.08);
+            padding-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .account-list {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 4px;
+        }
+
+        .account-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: rgba(16,16,16,0.35);
+            border: 1px solid rgba(40,30,30,0.06);
+            margin-bottom: 6px;
+        }
+
+        .account-item .acc-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .account-item .acc-username {
+            color: #d4c8c8;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .account-item .acc-role {
+            font-size: 0.6rem;
+            color: #665555;
+        }
+
+        .account-item .acc-expired {
+            font-size: 0.55rem;
+            color: #554444;
+        }
+
+        .account-item .acc-expired.danger {
+            color: #aa5555;
+        }
+
+        .account-item .acc-expired.warning {
+            color: #aa8844;
+        }
+
+        .account-item .acc-actions button {
+            background: none;
+            border: none;
+            color: #665555;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: 0.2s;
+            border-radius: 8px;
+        }
+
+        .account-item .acc-actions button:active {
+            transform: scale(0.9);
+            background: rgba(55,40,40,0.12);
+        }
+
+        .account-item .acc-actions button.danger {
+            color: #aa5555;
+        }
+
+        .acc-empty {
+            color: #443333;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.8rem;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.5rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-left: 6px;
+        }
+
+        .role-badge.user { background: rgba(60,60,80,0.2); color: #8888aa; }
+        .role-badge.vip { background: rgba(160,130,50,0.2); color: #c4a84a; }
+        .role-badge.owner { background: rgba(160,50,50,0.2); color: #c46a6a; }
+
+        .login-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .login-row .login-input-group {
+            flex: 1;
+        }
+
+        .login-row .login-input-group:last-child {
+            flex: 0.7;
+        }
+
+        .login-input-group select {
+            background: transparent;
+            border: none;
+            padding: 13px 0;
+            font-size: 0.9rem;
+            color: #d4c8c8;
+            width: 100%;
+            outline: none;
+            font-weight: 400;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .login-input-group select option {
+            background: #1a1a1a;
+            color: #d4c8c8;
+        }
+
+        .login-btn.secondary {
+            background: rgba(40, 40, 55, 0.15);
+            border-color: rgba(55, 55, 75, 0.1);
+            font-size: 0.85rem;
+            padding: 12px 10px;
+            margin-top: 4px;
+            width: 100%;
+        }
+
+        .login-success {
+            color: #558866;
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 18px;
+        }
+
+        /* ===== HALAMAN SENDER ===== */
+        .sender-input-group {
+            background: rgba(20, 20, 20, 0.7);
+            border-radius: 50px;
+            border: 1px solid rgba(50, 35, 35, 0.15);
+            display: flex;
+            align-items: center;
+            padding: 2px 2px 2px 18px;
+            margin-top: 8px;
+            transition: 0.3s;
+            backdrop-filter: blur(5px);
+            flex-shrink: 0;
+        }
+
+        .sender-input-group:focus-within {
+            border-color: rgba(80, 50, 50, 0.25);
+            box-shadow: 0 0 20px rgba(30, 0, 0, 0.04);
+        }
+
+        .sender-input-group input {
+            background: transparent;
+            border: none;
+            padding: 13px 0;
+            font-size: 0.9rem;
+            color: #d4c8c8;
+            width: 100%;
+            outline: none;
+            font-weight: 400;
+        }
+
+        .sender-input-group input::placeholder {
+            color: #554444;
+            font-weight: 300;
+        }
+
+        .sender-input-group .sender-icon {
+            color: #554444;
+            font-size: 0.85rem;
+            margin-right: 6px;
+        }
+
+        .sender-info {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(16,16,16,0.35);
+            border: 1px solid rgba(40,30,30,0.06);
+            color: #665555;
+            font-size: 0.7rem;
+            line-height: 1.6;
+            flex: 1;
+        }
+
+        .sender-info strong {
+            color: #887777;
+        }
+
+        /* ===== HALAMAN INFO ===== */
+        .info-section {
+            padding: 4px 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-item {
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(16,16,16,0.35);
+            border: 1px solid rgba(40,30,30,0.06);
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        .info-item .info-label {
+            color: #665555;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .info-item .info-value {
+            color: #d4c8c8;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        .info-warning {
+            margin-top: 12px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: rgba(35, 20, 20, 0.2);
+            border: 1px solid rgba(70, 40, 40, 0.1);
+            color: #887777;
+            font-size: 0.65rem;
+            line-height: 1.7;
+            flex: 1;
+        }
+
+        .info-warning .warning-title {
+            color: #aa8888;
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .info-warning .highlight {
+            color: #bb9999;
+            font-weight: 500;
+        }
+
+        /* ===== MENU POPUP ===== */
+        .menu-popup {
+            display: none;
+            position: absolute;
+            top: 70px;
+            left: 16px;
+            background: rgba(22, 22, 22, 0.96);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(55, 45, 45, 0.15);
+            border-radius: 16px;
+            padding: 8px 0;
+            min-width: 180px;
+            z-index: 50;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            animation: slideIn 0.2s ease;
+        }
+
+        .menu-popup.show {
+            display: block;
+        }
+
+        .menu-popup-item {
+            padding: 12px 20px;
+            color: #998888;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .menu-popup-item:active {
+            background: rgba(55,40,40,0.12);
+            transform: scale(0.97);
+        }
+
+        .menu-popup-item .menu-icon {
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 480px) {
+            .page { padding: 12px; }
+            .card { padding: 16px 14px 20px; border-radius: 20px; }
+            .brand-title { font-size: 2rem; letter-spacing: 4px; }
+            .bug-item { padding: 10px 14px; font-size: 0.82rem; border-radius: 14px; }
+            .input-group input { font-size: 0.88rem; }
+            .action-btn { padding: 13px 10px; font-size: 0.95rem; }
+            .bug-item .bullet { width: 8px; height: 8px; }
+            .bug-item .bullet::after { width: 4px; height: 4px; }
+            .menu-circle-btn { width: 34px; height: 34px; font-size: 1.1rem; }
+            .back-btn span { display: none; }
+            .login-box { padding: 24px 16px 20px; }
+            .login-brand h1 { font-size: 3rem; letter-spacing: 8px; }
+            .login-brand .logo-icon { font-size: 2.2rem; }
+            .login-row { flex-direction: column; gap: 0; }
+            .login-row .login-input-group:last-child { flex: 1; }
+            .menu-popup { left: 12px; right: 12px; min-width: auto; }
+            .status-label { font-size: 0.45rem; max-width: 60px; }
+            .splash-skip { top: 12px; right: 12px; padding: 6px 14px; font-size: 0.65rem; }
+            .loading-text { font-size: 0.95rem; }
+            .loading-done { font-size: 1.2rem; }
+        }
+
+        @media (max-width: 380px) {
+            .page { padding: 8px; }
+            .card { padding: 12px 10px 16px; }
+            .brand-title { font-size: 1.6rem; letter-spacing: 3px; }
+            .header { margin-bottom: 4px; }
+            .divider { margin: 6px 0 10px 0; }
+            .bug-item { padding: 8px 12px; font-size: 0.75rem; }
+            .action-btn { padding: 10px 8px; font-size: 0.85rem; }
+        }
+
+        ::-webkit-scrollbar {
+            width: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+
+        <!-- ===== SPLASH VIDEO ===== -->
+        <div class="splash-screen" id="splashScreen">
+            <video id="splashVideo" autoplay playsinline>
+                <source src="VIDEO.mp4" type="video/mp4">
+            </video>
+            <button class="splash-skip" id="splashSkip">⏭ Skip</button>
+        </div>
+
+        <!-- ===== LOADING OVERLAY ===== -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner" id="loadingSpinner"></div>
+            <div class="loading-text" id="loadingText">Mengirim bug...</div>
+            <div class="loading-done" id="loadingDone">✓ DONE</div>
+        </div>
+
+        <!-- ===== HALAMAN LOGIN ===== -->
+        <div class="page-login" id="pageLogin">
+            <div class="login-box">
+                <div class="login-brand">
+                    <span class="logo-icon">⚡</span>
+                    <h1>ZYT<span>-DSA</span></h1>
+                </div>
+
+                <div class="login-input-group">
+                    <span class="login-icon">👤</span>
+                    <input type="text" id="loginUsername" placeholder="Username" autocomplete="off">
+                </div>
+
+                <div class="login-input-group">
+                    <span class="login-icon">🔑</span>
+                    <input type="password" id="loginPassword" placeholder="Password" autocomplete="off">
+                </div>
+
+                <button class="login-btn" id="loginBtn">MASUK</button>
+                <div class="login-error" id="loginError"></div>
+
+                <div class="login-footer">ZYT-DSA</div>
+            </div>
+        </div>
+
+        <!-- ===== HALAMAN UTAMA ===== -->
+        <div class="page" id="pageMain">
+            <div class="card">
+                <div class="header">
+                    <div class="header-left">
+                        <button class="menu-circle-btn" id="menuBtn">⋯</button>
+                        <div class="brand-title">ZYT<span>-DSA</span></div>
+                    </div>
+                    <div class="header-right">
+                        <span class="status-dot"></span>
+                        <span class="status-label" id="userExpiredLabel">Loading...</span>
+                        <button class="logout-btn" id="logoutBtn">✕</button>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="video-container">
+                    <video id="bgVideo" autoplay loop playsinline>
+                        <source src="CCX.mp4" type="video/mp4">
+                    </video>
+                </div>
+
+                <div class="input-group">
+                    <span class="input-icon">📞</span>
+                    <input type="tel" id="targetNumber" placeholder="Masukkan nomor target">
+                </div>
+
+                <div class="bug-list" id="bugList">
+                    <div class="bug-item active" data-bug="invis-force-close">
+                        <span class="bullet"></span>
+                        <span class="label">Invis Force Close</span>
+                        <span class="badge">FC</span>
+                    </div>
+                    <div class="bug-item" data-bug="crash-delay">
+                        <span class="bullet"></span>
+                        <span class="label">Crash Delay</span>
+                        <span class="badge">delay</span>
+                    </div>
+                    <div class="bug-item" data-bug="sycte">
+                        <span class="bullet"></span>
+                        <span class="label">Sycte</span>
+                        <span class="badge">loop</span>
+                    </div>
+                    <div class="bug-item" data-bug="matot-hp">
+                        <span class="bullet"></span>
+                        <span class="label">Matot HP</span>
+                        <span class="badge">mati</span>
+                    </div>
+                    <div class="bug-item" data-bug="sedot-kouta">
+                        <span class="bullet"></span>
+                        <span class="label">Sedot Kouta</span>
+                        <span class="badge">kouta</span>
+                    </div>
+                    <div class="bug-item" data-bug="napolly">
+                        <span class="bullet"></span>
+                        <span class="label">Napolly</span>
+                        <span class="badge">nap</span>
+                    </div>
+                </div>
+
+                <button class="action-btn" id="executeBtn">KIRIM BUG</button>
+
+                <div class="status" id="statusMessage">☠️ siapkan target...</div>
+                <div class="footer">ZYT-DSA</div>
+            </div>
+        </div>
+
+        <!-- ===== HALAMAN AKUN ===== -->
+        <div class="page" id="pageAkun">
+            <div class="card">
+                <div class="header">
+                    <div class="header-left">
+                        <button class="back-btn" id="backAkun">‹ <span>Kembali</span></button>
+                        <div class="brand-title" style="font-size:1.6rem; letter-spacing:4px;">AKUN</div>
+                    </div>
+                    <div class="header-right">
+                        <span class="status-dot"></span>
+                        <span class="status-label" id="akunExpiredLabel">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="account-section">
+                    <div class="account-section-title">📝 Buat Akun Baru</div>
+                    <div class="login-input-group">
+                        <span class="login-icon">👤</span>
+                        <input type="text" id="registerUsername" placeholder="Username baru" autocomplete="off">
+                    </div>
+                    <div class="login-input-group">
+                        <span class="login-icon">🔑</span>
+                        <input type="password" id="registerPassword" placeholder="Password baru" autocomplete="off">
+                    </div>
+                    <div class="login-row">
+                        <div class="login-input-group">
+                            <span class="login-icon">👑</span>
+                            <select id="registerRole">
+                                <option value="user">User</option>
+                                <option value="vip">VIP</option>
+                                <option value="owner">Owner</option>
+                            </select>
+                        </div>
+                        <div class="login-input-group">
+                            <span class="login-icon">📅</span>
+                            <input type="date" id="registerExpired">
+                        </div>
+                    </div>
+                    <div class="login-row" style="margin-bottom: 6px;">
+                        <div class="login-input-group" style="flex:1;">
+                            <span class="login-icon">♾️</span>
+                            <select id="registerExpiredType">
+                                <option value="custom">Kustom</option>
+                                <option value="permanent">Permanen</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="login-btn secondary" id="registerBtn">➕ BUAT AKUN</button>
+                    <div class="login-success" id="registerSuccess"></div>
+                    <div class="login-error" id="registerError"></div>
+                </div>
+
+                <div class="divider" style="margin: 12px 0;"></div>
+
+                <div class="account-section">
+                    <div class="account-section-title">📋 Daftar Akun</div>
+                    <div class="account-list" id="accountList"></div>
+                </div>
+
+                <div class="footer">ZYT-DSA</div>
+            </div>
+        </div>
+
+        <!-- ===== HALAMAN SENDER ===== -->
+        <div class="page" id="pageSender">
+            <div class="card">
+                <div class="header">
+                    <div class="header-left">
+                        <button class="back-btn" id="backSender">‹ <span>Kembali</span></button>
+                        <div class="brand-title" style="font-size:1.6rem; letter-spacing:4px;">SENDER</div>
+                    </div>
+                    <div class="header-right">
+                        <span class="status-dot"></span>
+                        <span class="status-label" id="senderExpiredLabel">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="sender-input-group">
+                    <span class="sender-icon">✉️</span>
+                    <input type="tel" id="senderInput" placeholder="Nomor pengirim">
+                </div>
+                <div class="sender-info">
+                    <strong>📌 Sender</strong><br>
+                    Nomor yang akan terlihat sebagai pengirim bug. 
+                    Biarkan kosong untuk menggunakan nomor default.
+                </div>
+
+                <div class="footer">ZYT-DSA</div>
+            </div>
+        </div>
+
+        <!-- ===== HALAMAN INFO ===== -->
+        <div class="page" id="pageInfo">
+            <div class="card">
+                <div class="header">
+                    <div class="header-left">
+                        <button class="back-btn" id="backInfo">‹ <span>Kembali</span></button>
+                        <div class="brand-title" style="font-size:1.6rem; letter-spacing:4px;">INFO</div>
+                    </div>
+                    <div class="header-right">
+                        <span class="status-dot"></span>
+                        <span class="status-label" id="infoExpiredLabel">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="info-section">
+                    <div class="info-item">
+                        <div class="info-label">Developer</div>
+                        <div class="info-value">Lanzy</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Versi</div>
+                        <div class="info-value">ZYT-DSA v3.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Sistem Akun</div>
+                        <div class="info-value">User · VIP · Owner</div>
+                    </div>
+                    <div class="info-warning">
+                        <div class="warning-title">⚠️ Peringatan</div>
+                        APK bug ini <span class="highlight">jangan digunakan sembarangan</span> karena dapat merugikan orang yang tidak bersalah.<br><br>
+                        Jangan kau gunakan untuk <span class="highlight">ngeprank</span>.<br><br>
+                        Saran saya, kau jual <span class="highlight">jasbug</span> atau sejenisnya, yang penting <span class="highlight">tidak menyerang orang yang salah paham</span>.
+                    </div>
+                </div>
+
+                <div class="footer">ZYT-DSA</div>
+            </div>
+        </div>
+
+        <!-- ===== MENU POPUP ===== -->
+        <div class="menu-popup" id="menuPopup">
+            <button class="menu-popup-item" data-page="pageAkun">
+                <span class="menu-icon">👥</span> Akun
+            </button>
+            <button class="menu-popup-item" data-page="pageSender">
+                <span class="menu-icon">✉️</span> Sender
+            </button>
+            <button class="menu-popup-item" data-page="pageInfo">
+                <span class="menu-icon">ℹ️</span> Info Aplikasi
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        (function() {
+            // ===== SPLASH VIDEO =====
+            const splashScreen = document.getElementById('splashScreen');
+            const splashVideo = document.getElementById('splashVideo');
+            const splashSkip = document.getElementById('splashSkip');
+            const SPLASH_DURATION = 18027;
+
+            function hideSplash() {
+                splashScreen.classList.remove('show');
+                document.querySelectorAll('.page').forEach(function(p) {
+                    p.classList.remove('active');
+                });
+                document.getElementById('pageMain').classList.add('active');
+                updateExpiredLabels();
+                renderAccounts();
+                const mainVideo = document.getElementById('bgVideo');
+                if (mainVideo) {
+                    mainVideo.play().catch(function() {});
+                }
+                gentleVibrate(10, 'light');
+            }
+
+            splashSkip.addEventListener('click', function() {
+                hideSplash();
+                if (splashVideo) {
+                    splashVideo.pause();
+                }
+            });
+
+            // ===== LOADING OVERLAY =====
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const loadingText = document.getElementById('loadingText');
+            const loadingDone = document.getElementById('loadingDone');
+
+            function showLoading() {
+                loadingOverlay.classList.remove('hide');
+                loadingOverlay.classList.add('show');
+                loadingSpinner.classList.remove('hide');
+                loadingText.style.display = 'block';
+                loadingDone.classList.remove('show');
+                loadingDone.style.display = 'none';
+            }
+
+            function hideLoading() {
+                loadingOverlay.classList.remove('show');
+                loadingOverlay.classList.add('hide');
+                setTimeout(function() {
+                    loadingOverlay.classList.remove('hide');
+                }, 300);
+            }
+
+            function showDone() {
+                loadingSpinner.classList.add('hide');
+                loadingText.style.display = 'none';
+                loadingDone.style.display = 'block';
+                loadingDone.classList.add('show');
+                setTimeout(function() {
+                    hideLoading();
+                }, 1200);
+            }
+
+            // ===== SISTEM AKUN =====
+            let accounts = [];
+            let currentUser = null;
+
+            const defaultAccounts = [
+                { username: 'user', password: 'user', role: 'user', expired: 'permanent' },
+                { username: 'vip', password: 'vip', role: 'vip', expired: 'permanent' },
+                { username: 'owner', password: 'owner', role: 'owner', expired: 'permanent' }
+            ];
+
+            function loadAccounts() {
+                const saved = localStorage.getItem('zyt_accounts');
+                if (saved) {
+                    try {
+                        accounts = JSON.parse(saved);
+                        defaultAccounts.forEach(def => {
+                            if (!accounts.find(a => a.username === def.username)) {
+                                accounts.push(def);
+                            }
+                        });
+                    } catch(e) {
+                        accounts = JSON.parse(JSON.stringify(defaultAccounts));
+                    }
+                } else {
+                    accounts = JSON.parse(JSON.stringify(defaultAccounts));
+                }
+                saveAccounts();
+                checkExpired();
+            }
+
+            function saveAccounts() {
+                localStorage.setItem('zyt_accounts', JSON.stringify(accounts));
+            }
+
+            function checkExpired() {
+                const now = new Date();
+                let changed = false;
+                accounts.forEach(acc => {
+                    if (acc.expired && acc.expired !== 'permanent') {
+                        const expDate = new Date(acc.expired);
+                        if (expDate < now) {
+                            acc.expired = 'expired';
+                            changed = true;
+                        }
+                    }
+                });
+                if (changed) saveAccounts();
+            }
+
+            setInterval(checkExpired, 10000);
+
+            function getExpiredLabel(user) {
+                if (!user) return '—';
+                if (user.expired === 'permanent') {
+                    return '♾️ Permanen';
+                } else if (user.expired === 'expired') {
+                    return '⛔ Expired';
+                } else {
+                    return '📅 ' + user.expired;
+                }
+            }
+
+            function getExpiredClass(user) {
+                if (!user) return '';
+                if (user.expired === 'permanent') return 'permanen';
+                if (user.expired === 'expired') return 'expired';
+                return '';
+            }
+
+            function updateExpiredLabels() {
+                const label = getExpiredLabel(currentUser);
+                const cls = getExpiredClass(currentUser);
+                const elements = ['userExpiredLabel', 'akunExpiredLabel', 'senderExpiredLabel', 'infoExpiredLabel'];
+                elements.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.textContent = label;
+                        el.className = 'status-label' + (cls ? ' ' + cls : '');
+                    }
+                });
+            }
+
+            // ===== ELEMEN LOGIN =====
+            const loginPage = document.getElementById('pageLogin');
+            const loginUsername = document.getElementById('loginUsername');
+            const loginPassword = document.getElementById('loginPassword');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+
+            // ===== ELEMEN PAGE =====
+            const pageMain = document.getElementById('pageMain');
+            const pageAkun = document.getElementById('pageAkun');
+            const pageSender = document.getElementById('pageSender');
+            const pageInfo = document.getElementById('pageInfo');
+
+            const menuBtn = document.getElementById('menuBtn');
+            const menuPopup = document.getElementById('menuPopup');
+            const menuItems = document.querySelectorAll('.menu-popup-item');
+
+            const backAkun = document.getElementById('backAkun');
+            const backSender = document.getElementById('backSender');
+            const backInfo = document.getElementById('backInfo');
+
+            const registerUsername = document.getElementById('registerUsername');
+            const registerPassword = document.getElementById('registerPassword');
+            const registerRole = document.getElementById('registerRole');
+            const registerExpired = document.getElementById('registerExpired');
+            const registerExpiredType = document.getElementById('registerExpiredType');
+            const registerBtn = document.getElementById('registerBtn');
+            const registerSuccess = document.getElementById('registerSuccess');
+            const registerError = document.getElementById('registerError');
+            const accountList = document.getElementById('accountList');
+
+            // ===== ELEMEN LAIN =====
+            const targetInput = document.getElementById('targetNumber');
+            const bugItems = document.querySelectorAll('.bug-item');
+            const execBtn = document.getElementById('executeBtn');
+            const statusEl = document.getElementById('statusMessage');
+            const video = document.getElementById('bgVideo');
+            const senderInput = document.getElementById('senderInput');
+
+            let selectedBug = 'invis-force-close';
+            let currentTarget = '';
+            let senderNumber = '';
+            let isProcessing = false;
+
+            const today = new Date();
+            const future = new Date(today);
+            future.setMonth(future.getMonth() + 1);
+            registerExpired.value = future.toISOString().split('T')[0];
+            registerExpired.min = today.toISOString().split('T')[0];
+
+            function getRoleBadge(role) {
+                const labels = { user: 'User', vip: 'VIP', owner: 'Owner' };
+                return labels[role] || role;
+            }
+
+            function getRoleClass(role) {
+                return role || 'user';
+            }
+
+            function renderAccounts() {
+                if (!accountList) return;
+                const currentRole = currentUser ? currentUser.role : 'user';
+                const isOwner = currentRole === 'owner';
+                const isVIP = currentRole === 'vip';
+
+                let html = '';
+                let filteredAccounts = accounts;
+
+                if (!isOwner && !isVIP) {
+                    filteredAccounts = accounts.filter(a => a.username === currentUser?.username);
+                }
+
+                if (filteredAccounts.length === 0) {
+                    html = '<div class="acc-empty">Tidak ada akun</div>';
+                } else {
+                    filteredAccounts.forEach(acc => {
+                        const isExpired = acc.expired === 'expired';
+                        const isPermanent = acc.expired === 'permanent';
+                        const expText = isExpired ? '⛔ Expired' : 
+                                       isPermanent ? '♾️ Permanen' : 
+                                       '📅 ' + acc.expired;
+                        const expClass = isExpired ? 'danger' : (isPermanent ? '' : 'warning');
+
+                        const canDelete = isOwner || (isVIP && acc.role !== 'owner' && acc.role !== 'vip');
+                        const canEditRole = isOwner || (isVIP && acc.role !== 'owner');
+
+                        html += `
+                            <div class="account-item">
+                                <div class="acc-info">
+                                    <div class="acc-username">
+                                        ${acc.username}
+                                        <span class="role-badge ${getRoleClass(acc.role)}">${getRoleBadge(acc.role)}</span>
+                                    </div>
+                                    <div class="acc-expired ${expClass}">${expText}</div>
+                                </div>
+                                <div class="acc-actions">
+                                    ${canEditRole ? `
+                                        <button onclick="window.changeRole('${acc.username}')" title="Ubah Role">🔄</button>
+                                    ` : ''}
+                                    ${canDelete ? `
+                                        <button class="danger" onclick="window.deleteAccount('${acc.username}')" title="Hapus">🗑️</button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                accountList.innerHTML = html;
+            }
+
+            window.changeRole = function(username) {
+                const acc = accounts.find(a => a.username === username);
+                if (!acc) return;
+                const currentRole = currentUser ? currentUser.role : 'user';
+                const isOwner = currentRole === 'owner';
+                const isVIP = currentRole === 'vip';
+
+                let newRole = acc.role;
+                if (isOwner) {
+                    const roles = ['user', 'vip', 'owner'];
+                    const idx = roles.indexOf(acc.role);
+                    newRole = roles[(idx + 1) % roles.length];
+                } else if (isVIP && acc.role !== 'owner') {
+                    newRole = acc.role === 'user' ? 'vip' : 'user';
+                } else {
+                    return;
+                }
+                acc.role = newRole;
+                saveAccounts();
+                renderAccounts();
+                gentleVibrate(8, 'light');
+            };
+
+            window.deleteAccount = function(username) {
+                if (username === currentUser?.username) {
+                    loginError.textContent = '⚠️ Tidak bisa menghapus akun sendiri!';
+                    return;
+                }
+                const currentRole = currentUser ? currentUser.role : 'user';
+                const acc = accounts.find(a => a.username === username);
+                if (!acc) return;
+
+                if (currentRole === 'owner') {
+                    // Owner bisa hapus semua
+                } else if (currentRole === 'vip' && acc.role !== 'owner' && acc.role !== 'vip') {
+                    // VIP bisa hapus user biasa
+                } else {
+                    return;
+                }
+
+                if (confirm('Hapus akun ' + username + '?')) {
+                    accounts = accounts.filter(a => a.username !== username);
+                    saveAccounts();
+                    renderAccounts();
+                    gentleVibrate(10, 'medium');
+                }
+            };
+
+            // ===== LOGIN =====
+            loadAccounts();
+
+            loginBtn.addEventListener('click', function() {
+                const usn = loginUsername.value.trim();
+                const pass = loginPassword.value.trim();
+
+                if (!usn || !pass) {
+                    loginError.textContent = '⚠️ Isi username dan password!';
+                    return;
+                }
+
+                checkExpired();
+
+                const user = accounts.find(a => a.username === usn && a.password === pass);
+                if (user) {
+                    if (user.expired === 'expired') {
+                        loginError.textContent = '⛔ Akun sudah expired!';
+                        gentleVibrate(25, 'medium');
+                        return;
+                    }
+                    currentUser = user;
+                    loginError.textContent = '';
+                    loginUsername.value = '';
+                    loginPassword.value = '';
+                    showSplash();
+                } else {
+                    loginError.textContent = '⚠️ Username atau Password salah!';
+                    gentleVibrate(25, 'medium');
+                    loginUsername.value = '';
+                    loginPassword.value = '';
+                    loginUsername.focus();
+                }
+            });
+
+            loginUsername.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') loginPassword.focus();
+            });
+
+            loginPassword.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') loginBtn.click();
+            });
+
+            // ===== SHOW SPLASH =====
+            function showSplash() {
+                loginPage.classList.add('hidden');
+                splashScreen.classList.add('show');
+                if (splashVideo) {
+                    splashVideo.currentTime = 0;
+                    splashVideo.play().catch(function() {});
+                }
+
+                setTimeout(function() {
+                    if (splashScreen.classList.contains('show')) {
+                        hideSplash();
+                    }
+                }, SPLASH_DURATION);
+            }
+
+            // ===== HIDE SPLASH & SHOW APP =====
+            function hideSplash() {
+                splashScreen.classList.remove('show');
+                if (splashVideo) {
+                    splashVideo.pause();
+                }
+
+                document.querySelectorAll('.page').forEach(function(p) {
+                    p.classList.remove('active');
+                });
+                pageMain.classList.add('active');
+
+                updateExpiredLabels();
+
+                const currentRole = currentUser.role;
+                const isOwner = currentRole === 'owner';
+                const isVIP = currentRole === 'vip';
+
+                registerRole.innerHTML = '';
+                if (isOwner) {
+                    registerRole.innerHTML = `
+                        <option value="user">User</option>
+                        <option value="vip">VIP</option>
+                        <option value="owner">Owner</option>
+                    `;
+                } else if (isVIP) {
+                    registerRole.innerHTML = `
+                        <option value="user">User</option>
+                        <option value="vip">VIP</option>
+                    `;
+                }
+
+                renderAccounts();
+                gentleVibrate(10, 'light');
+
+                // MAIN VIDEO (CCX.mp4) PLAY
+                if (video) {
+                    video.play().catch(function() {});
+                }
+            }
+
+            // ===== REGISTER =====
+            registerBtn.addEventListener('click', function() {
+                const usn = registerUsername.value.trim();
+                const pass = registerPassword.value.trim();
+                const role = registerRole.value;
+                const expType = registerExpiredType.value;
+                const expDate = registerExpired.value;
+
+                registerSuccess.textContent = '';
+                registerError.textContent = '';
+
+                if (!usn || !pass) {
+                    registerError.textContent = '⚠️ Isi username dan password!';
+                    return;
+                }
+
+                if (usn.length < 3) {
+                    registerError.textContent = '⚠️ Username minimal 3 karakter!';
+                    return;
+                }
+
+                if (accounts.find(a => a.username === usn)) {
+                    registerError.textContent = '⚠️ Username sudah digunakan!';
+                    return;
+                }
+
+                const currentRole = currentUser ? currentUser.role : 'user';
+                const isOwner = currentRole === 'owner';
+                const isVIP = currentRole === 'vip';
+
+                if (isOwner === false && isVIP === false) {
+                    registerError.textContent = '⚠️ Hanya VIP & Owner yang bisa membuat akun!';
+                    return;
+                }
+
+                if (isVIP && role === 'owner') {
+                    registerError.textContent = '⚠️ VIP tidak bisa membuat Owner!';
+                    return;
+                }
+
+                let expiredValue = 'permanent';
+                if (expType === 'custom') {
+                    if (!expDate) {
+                        registerError.textContent = '⚠️ Pilih tanggal expired!';
+                        return;
+                    }
+                    const now = new Date();
+                    const selected = new Date(expDate);
+                    if (selected <= now) {
+                        registerError.textContent = '⚠️ Tanggal expired harus lebih dari hari ini!';
+                        return;
+                    }
+                    expiredValue = expDate;
+                }
+
+                const newAccount = {
+                    username: usn,
+                    password: pass,
+                    role: role,
+                    expired: expiredValue
+                };
+
+                accounts.push(newAccount);
+                saveAccounts();
+                renderAccounts();
+
+                registerSuccess.textContent = '✅ Akun ' + usn + ' berhasil dibuat!';
+                registerUsername.value = '';
+                registerPassword.value = '';
+                gentleVibrate(10, 'light');
+
+                const newFuture = new Date();
+                newFuture.setMonth(newFuture.getMonth() + 1);
+                registerExpired.value = newFuture.toISOString().split('T')[0];
+            });
+
+            registerUsername.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') registerPassword.focus();
+            });
+
+            registerPassword.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') registerBtn.click();
+            });
+
+            registerExpiredType.addEventListener('change', function() {
+                if (this.value === 'permanent') {
+                    registerExpired.disabled = true;
+                    registerExpired.style.opacity = '0.5';
+                } else {
+                    registerExpired.disabled = false;
+                    registerExpired.style.opacity = '1';
+                }
+            });
+            registerExpiredType.dispatchEvent(new Event('change'));
+
+            // ===== LOGOUT =====
+            const logoutBtn = document.getElementById('logoutBtn');
+            logoutBtn.addEventListener('click', function() {
+                currentUser = null;
+                splashScreen.classList.remove('show');
+                loginPage.classList.remove('hidden');
+                document.querySelectorAll('.page').forEach(function(p) {
+                    p.classList.remove('active');
+                });
+                loginUsername.value = '';
+                loginPassword.value = '';
+                loginError.textContent = '';
+                registerSuccess.textContent = '';
+                registerError.textContent = '';
+                menuPopup.classList.remove('show');
+
+                // STOP VIDEO CCX.mp4 (audio hilang)
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+
+                // STOP SPLASH VIDEO
+                if (splashVideo) {
+                    splashVideo.pause();
+                    splashVideo.currentTime = 0;
+                }
+
+                gentleVibrate(10, 'light');
+            });
+
+            // ===== MENU POPUP =====
+            menuBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                menuPopup.classList.toggle('show');
+                gentleVibrate(6, 'light');
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!menuPopup.contains(e.target) && e.target !== menuBtn) {
+                    menuPopup.classList.remove('show');
+                }
+            });
+
+            menuItems.forEach(function(item) {
+                item.addEventListener('click', function() {
+                    const pageId = this.dataset.page;
+                    document.querySelectorAll('.page').forEach(function(p) {
+                        p.classList.remove('active');
+                    });
+                    document.getElementById(pageId).classList.add('active');
+                    menuPopup.classList.remove('show');
+                    if (pageId === 'pageAkun') {
+                        renderAccounts();
+                        updateExpiredLabels();
+                    }
+                    gentleVibrate(5, 'light');
+                });
+            });
+
+            // ===== BACK BUTTONS =====
+            backAkun.addEventListener('click', function() {
+                document.querySelectorAll('.page').forEach(function(p) {
+                    p.classList.remove('active');
+                });
+                pageMain.classList.add('active');
+                gentleVibrate(5, 'light');
+            });
+
+            backSender.addEventListener('click', function() {
+                document.querySelectorAll('.page').forEach(function(p) {
+                    p.classList.remove('active');
+                });
+                pageMain.classList.add('active');
+                gentleVibrate(5, 'light');
+            });
+
+            backInfo.addEventListener('click', function() {
+                document.querySelectorAll('.page').forEach(function(p) {
+                    p.classList.remove('active');
+                });
+                pageMain.classList.add('active');
+                gentleVibrate(5, 'light');
+            });
+
+            // ===== VIBRATE =====
+            function gentleVibrate(duration = 10, intensity = 'light') {
+                if (!navigator.vibrate) return;
+                try {
+                    if (intensity === 'light') {
+                        navigator.vibrate(duration);
+                    } else if (intensity === 'medium') {
+                        navigator.vibrate([12, 15, 12]);
+                    } else {
+                        navigator.vibrate(duration);
+                    }
+                } catch (e) {
+                    navigator.vibrate(duration);
+                }
+            }
+
+            // ===== VIDEO =====
+            if (video) {
+                video.addEventListener('pause', function() {
+                    // Jika video pause karena user (bukan logout), kita play ulang
+                    // Tapi jika currentUser null (logout), jangan play
+                    if (!video.ended && !isProcessing && currentUser !== null) {
+                        video.play().catch(function(e) {});
+                    }
+                });
+
+                video.addEventListener('error', function(e) {
+                    statusEl.textContent = '⚠️ CCX.mp4 tidak ditemukan';
+                    statusEl.style.borderColor = 'rgba(80,30,30,0.2)';
+                });
+
+                document.addEventListener('visibilitychange', function() {
+                    // Hanya play jika user login
+                    if (!document.hidden && video.paused && !isProcessing && currentUser !== null) {
+                        video.play().catch(function() {});
+                    }
+                });
+            }
+
+            // ===== STATUS =====
+            function updateStatus(text, isGood = true) {
+                statusEl.textContent = text;
+                statusEl.style.borderColor = isGood ? 'rgba(40,35,35,0.08)' : 'rgba(80,30,30,0.2)';
+            }
+
+            // ===== PILIH BUG =====
+            bugItems.forEach(function(item) {
+                item.addEventListener('click', function() {
+                    if (isProcessing) return;
+
+                    bugItems.forEach(function(b) { b.classList.remove('active'); });
+                    this.classList.add('active');
+                    selectedBug = this.dataset.bug;
+                    const label = this.querySelector('.label')?.textContent || selectedBug;
+                    updateStatus('🔍 ' + label + ' | ' + (currentTarget || '???'));
+                    gentleVibrate(6, 'light');
+                });
+
+                item.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.97)';
+                }, { passive: true });
+
+                item.addEventListener('touchend', function() {
+                    this.style.transform = 'scale(1)';
+                }, { passive: true });
+            });
+
+            // ===== TARGET INPUT =====
+            targetInput.addEventListener('input', function() {
+                const raw = this.value.trim();
+                if (raw.length >= 8) {
+                    currentTarget = raw;
+                    const label = document.querySelector('.bug-item.active')?.querySelector('.label')?.textContent || selectedBug;
+                    updateStatus('🔍 ' + label + ' | ' + currentTarget);
+                }
+            });
+
+            targetInput.addEventListener('blur', function() {
+                const raw = this.value.trim();
+                if (raw.length >= 8) currentTarget = raw;
+            });
+
+            // ===== SENDER INPUT =====
+            senderInput.addEventListener('input', function() {
+                senderNumber = this.value.trim();
+            });
+
+            // ===== EKSEKUSI =====
+            execBtn.addEventListener('click', function() {
+                if (isProcessing) return;
+
+                const target = targetInput.value.trim() || currentTarget;
+                if (target === '' || target.length < 8) {
+                    updateStatus('❌ nomor target invalid', false);
+                    gentleVibrate(20, 'medium');
+                    return;
+                }
+                currentTarget = target;
+
+                let bugLabel = '';
+                bugItems.forEach(function(item) {
+                    if (item.dataset.bug === selectedBug) {
+                        bugLabel = item.querySelector('.label')?.textContent || selectedBug;
+                    }
+                });
+
+                const effectMap = {
+                    'invis-force-close': 'force close ...',
+                    'crash-delay': 'crash delay ...',
+                    'sycte': 'sycte loop ...',
+                    'matot-hp': 'matot hp ...',
+                    'sedot-kouta': 'sedot kouta ...',
+                    'napolly': 'napolly ...'
+                };
+
+                const desc = effectMap[selectedBug] || 'executing ...';
+                isProcessing = true;
+
+                gentleVibrate(10, 'light');
+
+                showLoading();
+
+                if (video) {
+                    video.style.filter = 'contrast(0.8) brightness(0.6) saturate(0.6)';
+                    video.style.transition = '0.3s';
+                }
+
+                const cardEl = document.querySelector('.card');
+                cardEl.style.animation = 'glitch 0.1s ease-in-out';
+                setTimeout(() => {
+                    cardEl.style.animation = '';
+                }, 200);
+
+                gentleVibrate(15, 'medium');
+
+                setTimeout(function() {
+                    showDone();
+
+                    const sender = senderNumber || 'Tidak diketahui';
+                    const result = [
+                        '☠️ ' + bugLabel + ' → ' + target + ' | sender: ' + sender,
+                        '💀 target affected by ' + sender,
+                        '👻 ' + target + ' down | sender: ' + sender,
+                        '⚡ ' + bugLabel + ' executed from ' + sender
+                    ][Math.floor(Math.random() * 4)];
+
+                    updateStatus(result);
+                    execBtn.disabled = false;
+                    execBtn.textContent = 'KIRIM BUG';
+                    isProcessing = false;
+
+                    if (video) {
+                        video.style.filter = 'contrast(1.02) brightness(0.92) saturate(0.92)';
+                    }
+
+                    gentleVibrate(8, 'light');
+                }, 1800 + Math.random() * 500);
+            });
+
+            // ===== DEFAULT =====
+            updateStatus('☠️ siapkan target...');
+
+            // ===== ENTER =====
+            targetInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !isProcessing) {
+                    execBtn.click();
+                    gentleVibrate(6, 'light');
+                }
+            });
+
+            // ===== ACTIVE DEFAULT =====
+            document.querySelector('.bug-item[data-bug="invis-force-close"]')?.classList.add('active');
+
+            console.log('📹 SPLASH: VIDEO.mp4 (18.027 detik) dengan AUDIO');
+            console.log('📹 MAIN: CCX.mp4 dengan AUDIO');
+            console.log('📌 Tombol: KIRIM BUG');
+            console.log('📌 Loading overlay → DONE');
+            console.log('📌 Bug baru: Napolly');
+            console.log('📌 Logout → audio CCX.mp4 berhenti');
+        })();
+    </script>
+</body>
+</html>
